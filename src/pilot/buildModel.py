@@ -20,7 +20,7 @@ from torch.autograd import Variable
 batch_size = 1000
 DATA_PATH = './data'
 MODEL_PATH = 'spiking_model_state.pth'
-MODEL_PATH_CL = 'spiking_model_state_cl.pth'
+MODEL_PATH_CL = 'spiking_model_state_binary.pth'
 
 def download_mnist(data_path):
     if not os.path.exists(data_path):
