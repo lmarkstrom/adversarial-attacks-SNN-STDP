@@ -10,6 +10,12 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 
+"""
+    This code is partially derived from: 
+        https://github.com/guillaume-chevalier/Spiking-Neural-Network-SNN-with-PyTorch-where-Backpropagation-engenders-STDP 
+    Which is oped for research purpose with citation. 
+"""
+
 # Data
 batch_size = 1000
 DATA_PATH = './data'
