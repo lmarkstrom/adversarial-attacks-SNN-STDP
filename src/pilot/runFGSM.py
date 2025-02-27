@@ -34,7 +34,7 @@ def fgsm_attack(image, epsilon, data_grad):
     """
         This is derived from: 
             https://pytorch.org/tutorials/beginner/fgsm_tutorial.html 
-        Which is oped for research purpose with citation. 
+        Which is open for research purpose with citation. 
     """
     sign_data_grad = data_grad.sign()
     perturbed_image = image + epsilon * sign_data_grad
