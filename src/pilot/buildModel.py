@@ -19,6 +19,8 @@ from torch.autograd import Variable
 # Data
 batch_size = 1000
 DATA_PATH = './data'
+MODEL_PATH = 'spiking_model_state.pth'
+MODEL_PATH_CL = 'spiking_model_state_cl.pth'
 
 def download_mnist(data_path):
     if not os.path.exists(data_path):
@@ -47,6 +49,7 @@ def train(model, device, train_set_loader, optimizer, epoch, logging_interval=10
     model.train()
     for batch_idx, (data, target) in enumerate(train_set_loader):
         data, target = data.to(device), target.to(device)
+        data = torch.clamp(data, 0, 1) # Force inputs to be in [0, 1]
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
@@ -89,6 +92,7 @@ def test(model, device, test_set_loader):
     with torch.no_grad():
         for data, target in test_set_loader:
             data, target = data.to(device), target.to(device)
+            data = torch.clamp(data, 0, 1) # Force inputs to be in [0, 1]
             output = model(data)
             # Note: with `reduce=True`, I'm not sure what would happen with a final batch size 
             # that would be smaller than regular previous batch sizes. For now it works.
@@ -340,7 +344,7 @@ class SpikingNet(nn.Module):
 def main():
     spiking_model = SpikingNet(device, n_time_steps=128, begin_eval=0)
     train_many_epochs(spiking_model)
-    torch.save(spiking_model.state_dict(), "spiking_model_state.pth")
+    torch.save(spiking_model.state_dict(), MODEL_PATH_CL)
 
     data, target = test_set_loader.__iter__().__next__()
 
@@ -358,4 +362,6 @@ def main():
     spiking_model.visualize_neuron(x, layer_idx=0, neuron_idx=0)
     print("The output neuron of the label:")
     spiking_model.visualize_neuron(x, layer_idx=1, neuron_idx=y)
+
+# main()
     

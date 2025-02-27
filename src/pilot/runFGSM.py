@@ -9,7 +9,7 @@ from torchvision import datasets, transforms
 import numpy as np
 import matplotlib.pyplot as plt
 
-from buildModel import SpikingNet, download_mnist, test, batch_size, DATA_PATH
+from buildModel import SpikingNet, download_mnist, test, batch_size, DATA_PATH, MODEL_PATH_CL, MODEL_PATH
 
 # Use GPU whever possible!
 use_cuda = torch.cuda.is_available()
@@ -17,7 +17,7 @@ device = torch.device("cuda" if use_cuda else "cpu")
 
 
 pretrained_model = './spiking_model_state.pth'
-epsilons = [0, 0.05, .1] #, .15, .2, .25, .3
+epsilons = [0, 0.05, .1, .15, .2, .25, .3]
 
 training_set, testing_set = download_mnist(DATA_PATH)
 test_set_loader = torch.utils.data.DataLoader(
@@ -26,7 +26,7 @@ test_set_loader = torch.utils.data.DataLoader(
     shuffle=False)
 
 spiking_model = SpikingNet(device, n_time_steps=128, begin_eval=0)
-spiking_model.load_state_dict(torch.load("spiking_model_state.pth"))
+spiking_model.load_state_dict(torch.load(MODEL_PATH_CL))
 spiking_model.to(device)
 spiking_model.eval()
 
