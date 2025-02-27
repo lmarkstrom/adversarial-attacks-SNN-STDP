@@ -1,3 +1,6 @@
 venv/
 /src/pilot/data
+/src/pilot/__pycache__
 /src/tests/data
+/src/tests/__pycache__
+/src/tests/attacks/__pycache__
