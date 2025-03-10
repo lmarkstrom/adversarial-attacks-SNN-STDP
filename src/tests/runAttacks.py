@@ -16,7 +16,7 @@ def main():
     spiking_model.to(device)
     spiking_model.eval()
 
-    run_fgsm(spiking_model, test_set_loader, device)
-    # run_deepfool(spiking_model, test_set_loader, device)
+    # run_fgsm(spiking_model, test_set_loader, device)
+    run_deepfool(spiking_model, test_set_loader, device)
 
 main()
