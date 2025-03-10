@@ -102,7 +102,7 @@ def test(model, test_set_loader, device):
         for i in range(data.shape[0]):
             print("Image: ", i)
             im = data[i].cpu()
-            img = im.unsqueeze(0).clone().requires_grad_(True)
+            img = torch.tensor(im[None,:,:,:],requires_grad =True)
             _, _, _, _, perturbed_img = deepfool(img, model, max_iter=10)
             perturbed_batch.append(perturbed_img.squeeze(0).detach())
         perturbed_batch = torch.stack(perturbed_batch).to(device)
