@@ -19,8 +19,16 @@ from torch.autograd import Variable
 # Data
 batch_size = 1000
 DATA_PATH = './data'
-MODEL_PATH = 'model/spiking_model_state.pth'
 MODEL_PATH_BINARY = 'model/spiking_model_state_binary.pth'
+MODEL_PATH_BINARY_SIMPLE = 'model/spiking_model_state_simple.pth'
+SIMPLE_CLASSES = {0, 1, 2, 3, 4}
+
+def filter_dataset(dataset, classes):
+    indices = [i for i in range(len(dataset.targets)) if dataset.targets[i].item() in classes]
+    dataset.data = dataset.data[indices]
+    dataset.targets = dataset.targets[indices]
+
+    return dataset
 
 def download_mnist(data_path):
     if not os.path.exists(data_path):
@@ -30,8 +38,21 @@ def download_mnist(data_path):
     testing_set = torchvision.datasets.MNIST(data_path, train=False, transform=transformation, download=True)
     return training_set, testing_set
 
-def get_mnist():
-    training_set, testing_set = download_mnist(DATA_PATH)
+def download_mnist_simple(data_path):
+    if not os.path.exists(data_path):
+        os.mkdir(data_path)
+    transformation = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (1.0,))])
+    training_set = torchvision.datasets.MNIST(data_path, train=True, transform=transformation, download=True)
+    testing_set = torchvision.datasets.MNIST(data_path, train=False, transform=transformation, download=True)
+    training_set = filter_dataset(training_set, SIMPLE_CLASSES)
+    testing_set = filter_dataset(testing_set, SIMPLE_CLASSES)
+    return training_set, testing_set
+
+def get_mnist(full):
+    if (full):
+        training_set, testing_set = download_mnist(DATA_PATH)
+    else: 
+        training_set, testing_set = download_mnist_simple(DATA_PATH)
     train_loader = torch.utils.data.DataLoader(
         dataset=training_set,
         batch_size=batch_size,
@@ -42,7 +63,8 @@ def get_mnist():
         shuffle=False)
     return train_loader, test_loader
 
-train_set_loader, test_set_loader = get_mnist()
+train_set_loader, test_set_loader = get_mnist(True)
+train_set_loader_simple, test_set_loader_simple = get_mnist(False)
 
 
 def train(model, device, train_set_loader, optimizer, epoch, logging_interval=100):
@@ -53,7 +75,7 @@ def train(model, device, train_set_loader, optimizer, epoch, logging_interval=10
     model.train()
     for batch_idx, (data, target) in enumerate(train_set_loader):
         data, target = data.to(device), target.to(device)
-        data = torch.clamp(data, 0, 1) # Force inputs to be in [0, 1]
+        data = torch.clamp(data, 0, 1) # Force inputs to be in [0, 1] --BINARY
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
@@ -68,21 +90,36 @@ def train(model, device, train_set_loader, optimizer, epoch, logging_interval=10
                 100. * batch_idx / len(train_set_loader), loss.item(),
                 100. * correct))
 
-def train_many_epochs(model): 
+def train_many_epochs(model, full):
+    print(f"Size of train_set_loader_simple: {len(train_set_loader_simple.dataset)}") 
+    print(f"Dataset Data Shape: {train_set_loader_simple.dataset.data.shape if hasattr(train_set_loader_simple.dataset, 'data') else 'None'}")
+    print(f"Dataset Targets Shape: {train_set_loader_simple.dataset.targets.shape if hasattr(train_set_loader_simple.dataset, 'targets') else 'None'}")
     epoch = 1
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
-    train(model, device, train_set_loader, optimizer, epoch, logging_interval=10)
-    test(model, device, test_set_loader)
+    if(full):
+        train(model, device, train_set_loader, optimizer, epoch, logging_interval=10)
+        test(model, device, test_set_loader)
+    else:
+        train(model, device, train_set_loader_simple, optimizer, epoch, logging_interval=10)
+        test(model, device, test_set_loader_simple) 
 
     epoch = 2
     optimizer = optim.SGD(model.parameters(), lr=0.05, momentum=0.5)
-    train(model, device, train_set_loader, optimizer, epoch, logging_interval=10)
-    test(model, device, test_set_loader)
+    if(full):
+        train(model, device, train_set_loader, optimizer, epoch, logging_interval=10)
+        test(model, device, test_set_loader)
+    else:
+        train(model, device, train_set_loader_simple, optimizer, epoch, logging_interval=10)
+        test(model, device, test_set_loader_simple) 
 
     epoch = 3
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
-    train(model, device, train_set_loader, optimizer, epoch, logging_interval=10)
-    test(model, device, test_set_loader)
+    if(full):
+        train(model, device, train_set_loader, optimizer, epoch, logging_interval=10)
+        test(model, device, test_set_loader)
+    else:
+        train(model, device, train_set_loader_simple, optimizer, epoch, logging_interval=10)
+        test(model, device, test_set_loader_simple) 
             
 def test(model, device, test_set_loader):
     # This method is derived from: 
@@ -347,7 +384,7 @@ class SpikingNet(nn.Module):
     
 def train_visualize():
     spiking_model = SpikingNet(device, n_time_steps=128, begin_eval=0)
-    train_many_epochs(spiking_model)
+    train_many_epochs(spiking_model, True)
     torch.save(spiking_model.state_dict(), MODEL_PATH_BINARY)
 
     data, target = test_set_loader.__iter__().__next__()
@@ -366,7 +403,28 @@ def train_visualize():
     spiking_model.visualize_neuron(x, layer_idx=0, neuron_idx=0)
     print("The output neuron of the label:")
     spiking_model.visualize_neuron(x, layer_idx=1, neuron_idx=y)
-    
 
-# visualize()
-    
+def train_visualize_simple():
+    spiking_model = SpikingNet(device, n_time_steps=128, begin_eval=0)
+    train_many_epochs(spiking_model, False)
+    torch.save(spiking_model.state_dict(), MODEL_PATH_BINARY_SIMPLE)
+
+    data, target = test_set_loader.__iter__().__next__()
+
+    # taking 1st testing example:
+    x = torch.stack([data[0]]) 
+    y = target.data.numpy()[0]
+    plt.figure(figsize=(12,12))
+    plt.imshow(x.data.cpu().numpy()[0,0])
+    plt.title("Input image x of label y={}:".format(y))
+    plt.show()
+
+    # plotting neuron's activations:
+    spiking_model.visualize_all_neurons(x)
+    print("A hidden neuron that looks excited:")
+    spiking_model.visualize_neuron(x, layer_idx=0, neuron_idx=0)
+    print("The output neuron of the label:")
+    spiking_model.visualize_neuron(x, layer_idx=1, neuron_idx=y)
+
+# trin_visualize()
+# train_visualize_simple()
