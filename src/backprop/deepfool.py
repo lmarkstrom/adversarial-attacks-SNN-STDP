@@ -35,6 +35,10 @@ def deepfool(data, targets, net, attack):
     return attack(data, targets)
 
 def measure_perturbation(original, adversarial):
+    # Change adversarial image shape if shape mismatch
+    if adversarial.shape != original.shape:
+        adversarial = adversarial.view_as(original)  
+
     perturbation = (adversarial - original).view(adversarial.size(0), -1)
     l2_norm = torch.norm(perturbation, p=2, dim=1)
     return l2_norm.mean().item()
