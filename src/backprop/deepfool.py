@@ -34,6 +34,11 @@ def deepfool(data, targets, net, attack):
     
     return attack(data, targets)
 
+def measure_perturbation(original, adversarial):
+    perturbation = (adversarial - original).view(adversarial.size(0), -1)
+    l2_norm = torch.norm(perturbation, p=2, dim=1)
+    return l2_norm.mean().item()
+
 def test(net):
     total = 0
     correct = 0
@@ -71,7 +76,7 @@ def test(net):
     print(f"Test Set Accuracy: {100 * correct / total:.2f}%")
     print(f"Average L2-norm: {sum(l2_norms) / len(l2_norms):.2f}")
 
-def run_fgsm():
+def run_deepfool():
     model_folder = 'models'
     model_path = os.path.join(model_folder, 'snn_model_bin.pth')
     net.load_state_dict(torch.load(model_path, map_location=device))
@@ -81,4 +86,4 @@ def run_fgsm():
     print(f"Model loaded from {model_path}")
     test(net)
 
-run_fgsm()
+run_deepfool()
