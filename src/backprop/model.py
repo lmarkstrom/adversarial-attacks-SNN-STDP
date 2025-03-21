@@ -51,9 +51,16 @@ lif1 = LeakySurrogate(beta=0.9) # lif1 = LeakySurrogate(beta=0.9)
 # dataloader arguments
 batch_size = 128
 data_path='/tmp/data/mnist'
+SIMPLE_CLASSES = {0, 1, 2, 3, 4}
 
 dtype = torch.float
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
+
+def filter_dataset(dataset, classes):
+    indices = [i for i in range(len(dataset.targets)) if dataset.targets[i].item() in classes]
+    dataset.data = dataset.data[indices]
+    dataset.targets = dataset.targets[indices]
+    return dataset
 
 # Define a transform
 transform = transforms.Compose([
@@ -64,12 +71,15 @@ transform = transforms.Compose([
 
 mnist_train = datasets.MNIST(data_path, train=True, download=False, transform=transform)
 mnist_test = datasets.MNIST(data_path, train=False, download=False, transform=transform)
-# mnist_train = datasets.MNIST(data_path, train=True, download=true, transform=transform)
-# mnist_test = datasets.MNIST(data_path, train=False, download=true, transform=transform)
+# mnist_train = datasets.MNIST(data_path, train=True, download=True, transform=transform)
+# mnist_test = datasets.MNIST(data_path, train=False, download=True, transform=transform)
+
+mnist_train_simple = filter_dataset(mnist_train, SIMPLE_CLASSES)
+mnist_test_simple = filter_dataset(mnist_test, SIMPLE_CLASSES)
 
 # Create DataLoaders
-train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True, drop_last=True)
-test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=True)
+train_loader = DataLoader(mnist_train_simple, batch_size=batch_size, shuffle=True, drop_last=True)
+test_loader = DataLoader(mnist_test_simple, batch_size=batch_size, shuffle=True, drop_last=True)
 
 # Network Architecture
 num_inputs = 28*28
@@ -154,6 +164,7 @@ def train():
         for data, targets in train_batch:
             data = data.to(device)
             targets = targets.to(device)
+            data = torch.clamp(data, 0, 1)
 
             # forward pass
             net.train()
@@ -206,7 +217,7 @@ def train():
 
     model_folder = 'models'
     os.makedirs(model_folder, exist_ok=True)  # Create the folder if it doesn't exist
-    model_path = os.path.join(model_folder, 'snn_model.pth')
+    model_path = os.path.join(model_folder, "snn_model_simple.pth")
     torch.save(net.state_dict(), model_path)
     print(f"Model saved in {model_path}")
 
