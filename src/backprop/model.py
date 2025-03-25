@@ -164,7 +164,7 @@ def train():
         for data, targets in train_batch:
             data = data.to(device)
             targets = targets.to(device)
-            data = torch.clamp(data, 0, 1)
+            # data = torch.clamp(data, 0, 1)
 
             # forward pass
             net.train()

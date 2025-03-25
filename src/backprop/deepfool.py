@@ -11,27 +11,14 @@ class AttackWrapper(nn.Module):
         self.snn = snn_model
 
     def forward(self, x):
-        # Flatten input if needed
         x = x.view(x.size(0), -1)
         spk_rec, _ = self.snn(x)
-        # Sum over time dimension to get final "logits"
         return spk_rec.sum(dim=0)
 
 
 def deepfool(data, targets, net, attack):
     data = data.view(data.size(0), -1)
-    # spk_rec, mem_rec = net(data.view(data.size(0), -1))
-    # loss = nn.CrossEntropyLoss() # lossfunction
-
-    # # Berökna loss, skillnad target och data, 
-    # loss_val = torch.zeros((1), dtype=dtype, device=device)
-    # for step in range(num_steps):
-    #     loss_val += loss(mem_rec[step], targets)
-
-    # # Backward pass to compute gradient w.r.t. input
-    # net.zero_grad()
-    # loss_val.backward()
-    perturbed_data = torch.clamp(attack(data, targets), 0, 1)
+    perturbed_data = attack(data, targets)
     return perturbed_data
 
 def measure_perturbation(original, adversarial):
@@ -93,7 +80,7 @@ def test(net):
 
 def run_deepfool():
     model_folder = 'models'
-    model_path = os.path.join(model_folder, 'snn_model_bin.pth')
+    model_path = os.path.join(model_folder, 'snn_model.pth')
     net.load_state_dict(torch.load(model_path, map_location=device))
     net.to(device)
     net.eval()

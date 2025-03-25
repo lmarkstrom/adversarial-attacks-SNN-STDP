@@ -1,35 +1,32 @@
 from model import device, net, mnist_test, batch_size, dtype, num_steps
 from torch.utils.data import DataLoader
 import torch.nn as nn
+import numpy as np
+import torchattacks
 import torch
 import os
 
 epsilons = [0, 0.04, .041, .042, .043, .044, .045]
 
-def fgsm_attack(data, targets, epsilon, net):
-    data.requires_grad = True
+class AttackWrapper(nn.Module):
+    def __init__(self, snn_model):
+        super().__init__()
+        self.snn_model = snn_model
 
-    # Skicka in data i nätverket
-    spk_rec, mem_rec = net(data.view(data.size(0), -1))
-    loss = nn.CrossEntropyLoss() # lossfunction
+    def forward(self, x):
+        x = x.view(x.size(0), -1)
+        spike_out, _ = self.snn_model(x)
+        return spike_out.sum(dim=0)
 
-    # Berökna loss, skillnad target och data, 
-    loss_val = torch.zeros((1), dtype=dtype, device=device)
-    for step in range(num_steps):
-        loss_val += loss(mem_rec[step], targets)
-
-    # Backward pass to compute gradient w.r.t. input
-    net.zero_grad()
-    loss_val.backward()
-
-    # FGSM perturbation
-    data_grad = data.grad.data
-    perturbed_data = data + epsilon * data_grad.sign()
-    perturbed_data = torch.clamp(perturbed_data, 0, 1)  # keep pixel values in range
+def fgsm_attack(data, targets, net, attack):
+    data = data.view(data.size(0), -1)
+    perturbed_data = attack(data, targets)
 
     return perturbed_data
 
 def measure_perturbation(original, adversarial):
+    if adversarial.shape != original.shape:
+        adversarial = adversarial.view_as(original)
     perturbation = (adversarial - original).view(adversarial.size(0), -1)
     l0_norm = (torch.count_nonzero(perturbation).float() / perturbation.size(1)).mean().item()
     l1_norm = (torch.sum(torch.abs(perturbation), dim=1) / perturbation.size(1)).mean().item()
@@ -49,12 +46,14 @@ def test(net, eps):
     # drop_last switched to False to keep all samples
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
 
+    attack = torchattacks.FGSM(AttackWrapper(net), eps=eps)
+
     net.eval()
     for data, targets in test_loader:
         data = data.to(device)
         targets = targets.to(device)
 
-        pert_data = fgsm_attack(data, targets, eps, net)
+        pert_data = fgsm_attack(data, targets, net, attack)
 
         # measure l2-NORM
         l0, l1, l2, linf = measure_perturbation(data, pert_data)
@@ -81,7 +80,7 @@ def test(net, eps):
 
 def run_fgsm():
     model_folder = 'models'
-    model_path = os.path.join(model_folder, 'snn_model_bin.pth')
+    model_path = os.path.join(model_folder, 'snn_model.pth')
     net.load_state_dict(torch.load(model_path, map_location=device))
     net.to(device)
     net.eval()
