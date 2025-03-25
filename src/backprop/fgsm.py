@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch
 import os
 
-epsilons = [0, 0.05, .1, .15, .2, .25, .3]
+epsilons = [0, 0.04, .041, .042, .043, .044, .045]
 
 def fgsm_attack(data, targets, epsilon, net):
     data.requires_grad = True
@@ -31,14 +31,20 @@ def fgsm_attack(data, targets, epsilon, net):
 
 def measure_perturbation(original, adversarial):
     perturbation = (adversarial - original).view(adversarial.size(0), -1)
-    l2_norm = torch.norm(perturbation, p=2, dim=1)
-    return l2_norm.mean().item()
+    l0_norm = torch.count_nonzero(perturbation).item()
+    l1_norm = torch.sum(torch.abs(perturbation)).item()
+    l2_norm = torch.norm(perturbation, p=2, dim=1).mean().item()
+    linf_norm = torch.max(torch.abs(perturbation)).item()
+    return l0_norm, l1_norm, l2_norm, linf_norm
 
 def test(net, eps):
     total = 0
     correct = 0
 
+    l0_norms = []
+    l1_norms = []
     l2_norms = []
+    linf_norms = []
 
     # drop_last switched to False to keep all samples
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
@@ -51,8 +57,11 @@ def test(net, eps):
         pert_data = fgsm_attack(data, targets, eps, net)
 
         # measure l2-NORM
-        l2 = measure_perturbation(data, pert_data)
+        l0, l1, l2, linf = measure_perturbation(data, pert_data)
+        l0_norms.append(l0)
+        l1_norms.append(l1)
         l2_norms.append(l2)
+        linf_norms.append(linf)
 
         # forward pass
         test_spk, _ = net(pert_data.view(pert_data.size(0), -1))
@@ -65,11 +74,14 @@ def test(net, eps):
     print(f"Epsilon: {eps}")    
     print(f"Total correctly classified test set images: {correct}/{total}")
     print(f"Test Set Accuracy: {100 * correct / total:.2f}%")
+    print(f"Average L0-norm: {sum(l0_norms) / len(l0_norms):.2f}")
+    print(f"Average L1-norm: {sum(l1_norms) / len(l1_norms):.2f}")
     print(f"Average L2-norm: {sum(l2_norms) / len(l2_norms):.2f}")
+    print(f"Average Linf-norm: {sum(linf_norms) / len(linf_norms):.2f}")
 
 def run_fgsm():
     model_folder = 'models'
-    model_path = os.path.join(model_folder, 'snn_model_simple.pth')
+    model_path = os.path.join(model_folder, 'snn_model_bin.pth')
     net.load_state_dict(torch.load(model_path, map_location=device))
     net.to(device)
     net.eval()
