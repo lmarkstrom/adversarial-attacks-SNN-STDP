@@ -45,7 +45,7 @@ def test(net):
     # drop_last switched to False to keep all samples
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
 
-    attack = torchattacks.DeepFool(AttackWrapper(net), steps=8, overshoot=0.02)
+    attack = torchattacks.DeepFool(AttackWrapper(net), steps=20, overshoot=0.02)
 
     net.eval()
     for data, targets in test_loader:
