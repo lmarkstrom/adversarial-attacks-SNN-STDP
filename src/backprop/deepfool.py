@@ -4,6 +4,7 @@ import torchattacks
 import torch.nn as nn
 import torch
 import os
+from scipy.stats import wasserstein_distance
 
 class AttackWrapper(nn.Module):
     def __init__(self, snn_model):
@@ -25,7 +26,7 @@ def measure_perturbation(original, adversarial):
     # Change adversarial image shape if shape mismatch
     if adversarial.shape != original.shape:
         adversarial = adversarial.view_as(original)  
-    perturbation = (adversarial - original).view(adversarial.size(0), -1)
+    perturbation = (adversarial - original).view(adversarial.size(0), -1)  
     l0_norm = (torch.count_nonzero(perturbation).float() / perturbation.size(1)).mean().item()
     l1_norm = (torch.sum(torch.abs(perturbation), dim=1) / perturbation.size(1)).mean().item()
     l2_norm = torch.norm(perturbation, p=2, dim=1).mean().item()
