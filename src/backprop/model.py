@@ -49,7 +49,7 @@ class LeakySurrogate(nn.Module):
 lif1 = LeakySurrogate(beta=0.9) # lif1 = LeakySurrogate(beta=0.9)
 
 # dataloader arguments
-batch_size = 128
+batch_size = 1
 data_path='/tmp/data/mnist'
 SIMPLE_CLASSES = {0, 1, 2, 3, 4}
 
@@ -74,12 +74,14 @@ mnist_test = datasets.MNIST(data_path, train=False, download=False, transform=tr
 # mnist_train = datasets.MNIST(data_path, train=True, download=True, transform=transform)
 # mnist_test = datasets.MNIST(data_path, train=False, download=True, transform=transform)
 
-mnist_train_simple = filter_dataset(mnist_train, SIMPLE_CLASSES)
-mnist_test_simple = filter_dataset(mnist_test, SIMPLE_CLASSES)
+# mnist_train_simple = filter_dataset(mnist_train, SIMPLE_CLASSES)
+# mnist_test_simple = filter_dataset(mnist_test, SIMPLE_CLASSES)
 
 # Create DataLoaders
-train_loader = DataLoader(mnist_train_simple, batch_size=batch_size, shuffle=True, drop_last=True)
-test_loader = DataLoader(mnist_test_simple, batch_size=batch_size, shuffle=True, drop_last=True)
+# train_loader = DataLoader(mnist_train_simple, batch_size=batch_size, shuffle=True, drop_last=True)
+# test_loader = DataLoader(mnist_test_simple, batch_size=batch_size, shuffle=True, drop_last=True)
+train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True, drop_last=True)
+test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=True)
 
 # Network Architecture
 num_inputs = 28*28
@@ -217,7 +219,7 @@ def train():
 
     model_folder = 'models'
     os.makedirs(model_folder, exist_ok=True)  # Create the folder if it doesn't exist
-    model_path = os.path.join(model_folder, "snn_model_simple.pth")
+    model_path = os.path.join(model_folder, "snn_model.pth")
     torch.save(net.state_dict(), model_path)
     print(f"Model saved in {model_path}")
 
