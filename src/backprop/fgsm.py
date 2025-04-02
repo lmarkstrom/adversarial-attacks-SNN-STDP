@@ -7,7 +7,7 @@ import torch
 import os
 from scipy.stats import wasserstein_distance
 
-epsilons = [0, 0.04, .041, .042, .043, .044, .045]
+epsilons = [0.038, .039, .0395, .0416, .044, .045]
 
 class AttackWrapper(nn.Module):
     def __init__(self, snn_model):

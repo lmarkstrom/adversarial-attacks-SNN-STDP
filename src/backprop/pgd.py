@@ -24,15 +24,15 @@ def pgd_attack(image, targets, attack) :
     return perturbed_data
 
 def measure_perturbation(original, adversarial):
-    # Change adversarial image shape if shape mismatch
     if adversarial.shape != original.shape:
-        adversarial = adversarial.view_as(original)  
-    perturbation = (adversarial - original).view(adversarial.size(0), -1)  
+        adversarial = adversarial.view_as(original)
+    perturbation = (adversarial - original).view(adversarial.size(0), -1)
+    wass = wasserstein_distance(original.flatten(), adversarial.flatten())
     l0_norm = (torch.count_nonzero(perturbation).float() / perturbation.size(1)).mean().item()
     l1_norm = (torch.sum(torch.abs(perturbation), dim=1) / perturbation.size(1)).mean().item()
     l2_norm = torch.norm(perturbation, p=2, dim=1).mean().item()
     linf_norm = torch.max(torch.abs(perturbation)).item()
-    return l0_norm, l1_norm, l2_norm, linf_norm
+    return l0_norm, l1_norm, l2_norm, linf_norm, wass
 
 def test(net):
     total = 0
@@ -43,12 +43,13 @@ def test(net):
     l1_norms = []
     l2_norms = []
     linf_norms = []
+    wasserstein = []
 
     # drop_last switched to False to keep all samples
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
 
     # attack = torchattacks.DeepFool(AttackWrapper(net), steps=20, overshoot=0.02)
-    attack = torchattacks.PGD(AttackWrapper(net), eps=123/2550, alpha=1/255, steps=10, random_start=True)
+    attack = torchattacks.PGD(AttackWrapper(net), eps=112/2550, alpha=1/255, steps=10, random_start=True)
 
     net.eval()
     for data, targets in test_loader:
@@ -60,11 +61,13 @@ def test(net):
         pert_data = pgd_attack(data, targets, attack)
 
         # measure l2-NORM
-        l0, l1, l2, linf = measure_perturbation(data, pert_data)
+        # measure l2-NORM
+        l0, l1, l2, linf, wass = measure_perturbation(data, pert_data)
         l0_norms.append(l0)
         l1_norms.append(l1)
         l2_norms.append(l2)
         linf_norms.append(linf)
+        wasserstein.append(wass)
 
         # forward pass
         test_spk, _ = net(pert_data.view(pert_data.size(0), -1))
@@ -83,8 +86,9 @@ def test(net):
     print(f"Average L1-norm: {sum(l1_norms) / len(l1_norms):.2f}")
     print(f"Average L2-norm: {sum(l2_norms) / len(l2_norms):.2f}")
     print(f"Average Linf-norm: {sum(linf_norms) / len(linf_norms):.2f}")
+    print(f"Average Wass-dist: {sum(wasserstein) / len(wasserstein):.2f}")
 
-def run_pdg():
+def run_pgd():
     model_folder = 'models'
     model_path = os.path.join(model_folder, 'snn_model.pth')
     net.load_state_dict(torch.load(model_path, map_location=device))
@@ -94,4 +98,4 @@ def run_pdg():
     print(f"Model loaded from {model_path}")
     test(net)
 
-run_pdg()
+run_pgd()

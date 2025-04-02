@@ -49,7 +49,7 @@ class LeakySurrogate(nn.Module):
 lif1 = LeakySurrogate(beta=0.9) # lif1 = LeakySurrogate(beta=0.9)
 
 # dataloader arguments
-batch_size = 1
+batch_size = 128
 data_path='/tmp/data/mnist'
 SIMPLE_CLASSES = {0, 1, 2, 3, 4}
 
