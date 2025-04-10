@@ -74,13 +74,13 @@ mnist_test = datasets.MNIST(data_path, train=False, download=False, transform=tr
 # mnist_train = datasets.MNIST(data_path, train=True, download=True, transform=transform)
 # mnist_test = datasets.MNIST(data_path, train=False, download=True, transform=transform)
 
-mnist_train_simple = filter_dataset(mnist_train, SIMPLE_CLASSES)
-mnist_test_simple = filter_dataset(mnist_test, SIMPLE_CLASSES)
-train_loader = DataLoader(mnist_train_simple, batch_size=batch_size, shuffle=True, drop_last=True)
-test_loader = DataLoader(mnist_test_simple, batch_size=batch_size, shuffle=True, drop_last=True)
+# mnist_train_simple = filter_dataset(mnist_train, SIMPLE_CLASSES)
+# mnist_test_simple = filter_dataset(mnist_test, SIMPLE_CLASSES)
+# train_loader = DataLoader(mnist_train_simple, batch_size=batch_size, shuffle=True, drop_last=True)
+# test_loader = DataLoader(mnist_test_simple, batch_size=batch_size, shuffle=True, drop_last=True)
 
-# train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True, drop_last=True)
-# test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=True)
+train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True, drop_last=True)
+test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=True)
 
 # Network Architecture
 num_inputs = 28*28
@@ -138,19 +138,29 @@ def print_batch_accuracy(data, targets, train=False):
         print(f"Train set accuracy for a single minibatch: {acc*100:.2f}%")
     else:
         print(f"Test set accuracy for a single minibatch: {acc*100:.2f}%")
+    return acc
 
 def train():
     def train_printer():
         print(f"Epoch {epoch}, Iteration {iter_counter}")
         print(f"Train Set Loss: {loss_hist[counter]:.2f}")
         print(f"Test Set Loss: {test_loss_hist[counter]:.2f}")
-        print_batch_accuracy(data, targets, train=True)
-        print_batch_accuracy(test_data, test_targets, train=False)
+        acc = print_batch_accuracy(data, targets, train=True)
+        test_acc = print_batch_accuracy(test_data, test_targets, train=False)
         print("\n")
+        return acc, test_acc
+
+    def calc_acc(img, tar):
+        output, _ = net(img.view(batch_size, -1))
+        _, idx = output.sum(dim=0).max(1)
+        acc = np.mean((tar == idx).detach().cpu().numpy())
+        return acc
 
     num_epochs = 3
     loss_hist = []
     test_loss_hist = []
+    acc_hist = []
+    test_acc_hist = []
     counter = 0
 
     loss = nn.CrossEntropyLoss()
@@ -183,6 +193,7 @@ def train():
 
             # Store loss history for future plotting
             loss_hist.append(loss_val.item())
+            acc_hist.append(calc_acc(data, targets))
 
             # Test set
             with torch.no_grad():
@@ -199,6 +210,7 @@ def train():
                 for step in range(num_steps):
                     test_loss += loss(test_mem[step], test_targets)
                 test_loss_hist.append(test_loss.item())
+                test_acc_hist.append(calc_acc(test_data, test_targets))
 
                 # Print train/test loss/accuracy
                 if counter % 50 == 0:
@@ -215,10 +227,20 @@ def train():
     plt.xlabel("Iteration")
     plt.ylabel("Loss")
     plt.show()
+    
+    # Plot Accuracy
+    fig = plt.figure(facecolor="w", figsize=(10, 5))
+    plt.plot(acc_hist)
+    plt.plot(test_acc_hist)
+    plt.title("Accuracy Curves")
+    plt.legend(["Train Accuracy", "Test Accuracy"])
+    plt.xlabel("Iteration")
+    plt.ylabel("Accuracy")
+    plt.show()
 
     model_folder = 'models'
     os.makedirs(model_folder, exist_ok=True)  # Create the folder if it doesn't exist
-    model_path = os.path.join(model_folder, "snn_model_2.pth")
+    model_path = os.path.join(model_folder, "snn_model.pth")
     torch.save(net.state_dict(), model_path)
     print(f"Model saved in {model_path}")
 

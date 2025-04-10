@@ -49,7 +49,7 @@ def test(net):
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
 
     # attack = torchattacks.DeepFool(AttackWrapper(net), steps=20, overshoot=0.02)
-    attack = torchattacks.PGD(AttackWrapper(net), eps=112/2550, alpha=1/255, steps=10, random_start=True)
+    attack = torchattacks.PGD(AttackWrapper(net), eps=18450/255000, alpha=1/255, steps=20, random_start=True)
 
     net.eval()
     for data, targets in test_loader:
@@ -86,7 +86,7 @@ def test(net):
     print(f"Average L1-norm: {sum(l1_norms) / len(l1_norms):.2f}")
     print(f"Average L2-norm: {sum(l2_norms) / len(l2_norms):.2f}")
     print(f"Average Linf-norm: {sum(linf_norms) / len(linf_norms):.2f}")
-    print(f"Average Wass-dist: {sum(wasserstein) / len(wasserstein):.2f}")
+    print(f"Average Wass-dist: {sum(wasserstein) / len(wasserstein):.4f}")
 
 def run_pgd():
     model_folder = 'models'
