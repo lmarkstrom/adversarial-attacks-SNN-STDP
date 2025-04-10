@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch
 import os
 from scipy.stats import wasserstein_distance
+import matplotlib.pyplot as plt
 
 class AttackWrapper(nn.Module):
     def __init__(self, snn_model):
@@ -33,6 +34,32 @@ def measure_perturbation(original, adversarial):
     linf_norm = torch.max(torch.abs(perturbation)).item()
     return l0_norm, l1_norm, l2_norm, linf_norm, wass
 
+# Plot unperturbed and perturbed images
+def image_plot(data, pert_data):
+    fig, axes = plt.subplots(nrows=10, ncols=2, figsize=(5, 20))
+    fig.suptitle('Original vs Perturbed Images', fontsize=16)
+
+    axes[0, 0].set_title('Original')
+    axes[0, 1].set_title('Perturbed')
+    for i in range(10):
+        img_orig = data[i].view(28, 28)
+        img_pert = pert_data[i].view(28, 28) 
+
+        # Original image
+        axes[i, 0].imshow(img_orig, cmap='gray')
+        axes[i, 0].axis('off')
+
+        # Perturbed image
+        axes[i, 1].imshow(img_pert, cmap='gray')
+        axes[i, 1].axis('off')
+
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.95)
+
+    save_path = os.path.join("images", "CW.png")
+    plt.savefig(save_path)
+    plt.show()
+
 def test(net):
     total = 0
     correct = 0
@@ -43,6 +70,11 @@ def test(net):
     l2_norms = []
     linf_norms = []
     wasserstein = []
+
+    image_found = [False, False, False, False, False, False, False, False, False, False]
+    images = [0,0,0,0,0,0,0,0,0,0]
+    pert_images = [0,0,0,0,0,0,0,0,0,0]
+    image_plot_done = False
 
     # drop_last switched to False to keep all samples
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
@@ -58,6 +90,15 @@ def test(net):
 
         # print(f"Batch {batch}/{len(test_loader)}")
         pert_data = cw(data, targets, attack)
+
+        if not image_plot_done:
+            for idx, target in enumerate(targets):
+                if not image_found[target]:
+                    images[target] = data[idx]
+                    pert_images[target] = pert_data[idx]
+                    image_found[target] = True 
+                    if all(image_found):
+                        image_plot(images, pert_images)
 
         # measure l2-NORM
         # measure l2-NORM
@@ -85,11 +126,11 @@ def test(net):
     print(f"Average L1-norm: {sum(l1_norms) / len(l1_norms):.2f}")
     print(f"Average L2-norm: {sum(l2_norms) / len(l2_norms):.2f}")
     print(f"Average Linf-norm: {sum(linf_norms) / len(linf_norms):.2f}")
-    print(f"Average Wass-dist: {sum(wasserstein) / len(wasserstein):.2f}")
+    print(f"Average Wass-dist: {sum(wasserstein) / len(wasserstein):.4f}")
 
 def run_cw():
     model_folder = 'models'
-    model_path = os.path.join(model_folder, 'snn_model_2.pth')
+    model_path = os.path.join(model_folder, 'snn_model.pth')
     net.load_state_dict(torch.load(model_path, map_location=device))
     net.to(device)
     print(f"Device: {device}")
