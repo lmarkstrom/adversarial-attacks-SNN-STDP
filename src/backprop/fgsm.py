@@ -38,27 +38,30 @@ def measure_perturbation(original, adversarial):
     linf_norm = torch.max(torch.abs(perturbation)).item()
     return l0_norm, l1_norm, l2_norm, linf_norm, wass
 
+# Plot unperturbed and perturbed images
 def image_plot(data, pert_data):
     fig, axes = plt.subplots(nrows=10, ncols=2, figsize=(5, 20))
     fig.suptitle('Original vs Perturbed Images', fontsize=16)
 
+    axes[0, 0].set_title('Original')
+    axes[0, 1].set_title('Perturbed')
     for i in range(10):
-        # Convert each tensor to 28x28 if it's 1D (flattened)
-        img_orig = data[i].view(28, 28) if data[i].ndim == 1 else data[i].squeeze()
-        img_pert = pert_data[i].view(28, 28) if pert_data[i].ndim == 1 else pert_data[i].squeeze()
+        img_orig = data[i].view(28, 28)
+        img_pert = pert_data[i].view(28, 28) 
 
         # Original image
         axes[i, 0].imshow(img_orig, cmap='gray')
-        axes[i, 0].set_title("Original")
         axes[i, 0].axis('off')
 
         # Perturbed image
         axes[i, 1].imshow(img_pert, cmap='gray')
-        axes[i, 1].set_title("Perturbed")
         axes[i, 1].axis('off')
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.95)
+
+    save_path = os.path.join("images", "fgsm.png")
+    plt.savefig(save_path)
     plt.show()
 
 def test(net, eps):
