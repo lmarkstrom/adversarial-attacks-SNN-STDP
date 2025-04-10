@@ -39,7 +39,7 @@ def measure_perturbation(original, adversarial):
     return l0_norm, l1_norm, l2_norm, linf_norm, wass
 
 # Plot unperturbed and perturbed images
-def image_plot(data, pert_data):
+def image_plot(data, pert_data, mispredictions):
     fig, axes = plt.subplots(nrows=10, ncols=2, figsize=(5, 20))
     fig.suptitle('Original vs Perturbed Images', fontsize=16)
 
@@ -52,10 +52,11 @@ def image_plot(data, pert_data):
         # Original image
         axes[i, 0].imshow(img_orig, cmap='gray')
         axes[i, 0].axis('off')
-
+        axes[i, 0].set_title(i)
         # Perturbed image
         axes[i, 1].imshow(img_pert, cmap='gray')
         axes[i, 1].axis('off')
+        axes[i, 1].set_title(mispredictions[i].item())
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.95)
@@ -78,6 +79,7 @@ def test(net, eps):
     images = [0,0,0,0,0,0,0,0,0,0]
     pert_images = [0,0,0,0,0,0,0,0,0,0]
     image_plot_done = False
+    mispredictions = [0,0,0,0,0,0,0,0,0,0]
 
     # drop_last switched to False to keep all samples
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
@@ -90,15 +92,6 @@ def test(net, eps):
         targets = targets.to(device)
 
         pert_data = fgsm_attack(data, targets, net, attack)
-
-        if not image_plot_done:
-            for idx, target in enumerate(targets):
-                if not image_found[target]:
-                    images[target] = data[idx]
-                    pert_images[target] = pert_data[idx]
-                    image_found[target] = True 
-                    if all(image_found):
-                        image_plot(images, pert_images)
 
         # measure l2-NORM
         l0, l1, l2, linf, wass = measure_perturbation(data, pert_data)
@@ -115,6 +108,17 @@ def test(net, eps):
         _, predicted = test_spk.sum(dim=0).max(1)
         total += targets.size(0)
         correct += (predicted == targets).sum().item()
+
+        # Plot first not correctly predicted images of each class
+        if not image_plot_done:
+            for idx, target in enumerate(targets):
+                if (not image_found[target]) and predicted[idx] != targets[idx]:
+                    mispredictions[target] = predicted[idx]
+                    images[target] = data[idx]
+                    pert_images[target] = pert_data[idx]
+                    image_found[target] = True 
+                    if all(image_found):
+                        image_plot(images, pert_images, mispredictions)
 
     print(f"Epsilon: {eps}")    
     print(f"Total correctly classified test set images: {correct}/{total}")
