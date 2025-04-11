@@ -82,7 +82,7 @@ def test(net):
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
 
     # attack = torchattacks.DeepFool(AttackWrapper(net), steps=50, overshoot=0.04)
-    attack = torchattacks.CW(AttackWrapper(net), c=1, kappa=0, steps=200, lr=0.05)
+    attack = torchattacks.CW(AttackWrapper(net), c=1.5, kappa=0, steps=200, lr=0.05)
 
     print(f"Total batches: {len(test_loader)}")
     net.eval()

@@ -8,7 +8,7 @@ import os
 from scipy.stats import wasserstein_distance
 import matplotlib.pyplot as plt
 
-epsilons = [0.038, .039, .0395, .0416, .044, .045]
+epsilons = [.066057]
 
 
 class AttackWrapper(nn.Module):
@@ -32,7 +32,11 @@ def measure_perturbation(original, adversarial):
         adversarial = adversarial.view_as(original)
     perturbation = (adversarial - original).view(adversarial.size(0), -1)
     wass = wasserstein_distance(original.flatten(), adversarial.flatten())
-    l0_norm = (torch.count_nonzero(perturbation).float() / perturbation.size(1)).mean().item()
+    # print(torch.count_nonzero(perturbation).float())
+    # print(perturbation.size(1))
+    l0_norm = (torch.count_nonzero(perturbation).float() / 128).item()
+    # l0_norm = (perturbation != 0).float().sum(dim=1) / perturbation.size(1)
+    # l0_norm = l0_norm.mean().item()
     l1_norm = (torch.sum(torch.abs(perturbation), dim=1) / perturbation.size(1)).mean().item()
     l2_norm = torch.norm(perturbation, p=2, dim=1).mean().item()
     linf_norm = torch.max(torch.abs(perturbation)).item()
