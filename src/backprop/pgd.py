@@ -28,7 +28,7 @@ def measure_perturbation(original, adversarial):
         adversarial = adversarial.view_as(original)
     perturbation = (adversarial - original).view(adversarial.size(0), -1)
     wass = wasserstein_distance(original.flatten(), adversarial.flatten())
-    l0_norm = (torch.count_nonzero(perturbation).float() / perturbation.size(1)).mean().item()
+    l0_norm = (torch.count_nonzero(perturbation).float() / perturbation.size(1)*batchsize).mean().item()
     l1_norm = (torch.sum(torch.abs(perturbation), dim=1) / perturbation.size(1)).mean().item()
     l2_norm = torch.norm(perturbation, p=2, dim=1).mean().item()
     linf_norm = torch.max(torch.abs(perturbation)).item()
@@ -49,11 +49,10 @@ def test(net):
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
 
     # attack = torchattacks.DeepFool(AttackWrapper(net), steps=20, overshoot=0.02)
-    attack = torchattacks.PGD(AttackWrapper(net), eps=18450/255000, alpha=1/255, steps=20, random_start=True)
+    attack = torchattacks.PGD(AttackWrapper(net), eps=14860/255000, alpha=1/255, steps=20, random_start=True)
 
     net.eval()
     for data, targets in test_loader:
-        data = data.to(device)
         targets = targets.to(device)
 
         # print(f"Batch {batch}/{len(test_loader)}")

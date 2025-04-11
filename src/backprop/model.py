@@ -74,18 +74,18 @@ mnist_test = datasets.MNIST(data_path, train=False, download=False, transform=tr
 # mnist_train = datasets.MNIST(data_path, train=True, download=True, transform=transform)
 # mnist_test = datasets.MNIST(data_path, train=False, download=True, transform=transform)
 
-# mnist_train_simple = filter_dataset(mnist_train, SIMPLE_CLASSES)
-# mnist_test_simple = filter_dataset(mnist_test, SIMPLE_CLASSES)
-# train_loader = DataLoader(mnist_train_simple, batch_size=batch_size, shuffle=True, drop_last=True)
-# test_loader = DataLoader(mnist_test_simple, batch_size=batch_size, shuffle=True, drop_last=True)
+mnist_train_simple = filter_dataset(mnist_train, SIMPLE_CLASSES)
+mnist_test_simple = filter_dataset(mnist_test, SIMPLE_CLASSES)
+train_loader = DataLoader(mnist_train_simple, batch_size=batch_size, shuffle=True, drop_last=True)
+test_loader = DataLoader(mnist_test_simple, batch_size=batch_size, shuffle=True, drop_last=True)
 
-train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True, drop_last=True)
-test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=True)
+# train_loader = DataLoader(mnist_train, batch_size=batch_size, shuffle=True, drop_last=True)
+# test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=True)
 
 # Network Architecture
 num_inputs = 28*28
 num_hidden = 1000
-num_outputs = 10
+num_outputs = 5
 
 # Temporal Dynamics
 num_steps = 25

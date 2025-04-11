@@ -7,7 +7,7 @@ import torch
 import os
 from scipy.stats import wasserstein_distance
 
-epsilons = [0.082545, .082547, .082548, .082549, .08250, .08252]
+epsilons = [.066057]
 
 class AttackWrapper(nn.Module):
     def __init__(self, snn_model):
@@ -30,9 +30,11 @@ def measure_perturbation(original, adversarial):
         adversarial = adversarial.view_as(original)
     perturbation = (adversarial - original).view(adversarial.size(0), -1)
     wass = wasserstein_distance(original.flatten(), adversarial.flatten())
-    # l0_norm = (torch.count_nonzero(perturbation).float() / perturbation.size(1)).mean().item()
-    l0_norm = (perturbation != 0).float().sum(dim=1) / perturbation.size(1)
-    l0_norm = l0_norm.mean().item()
+    # print(torch.count_nonzero(perturbation).float())
+    # print(perturbation.size(1))
+    l0_norm = (torch.count_nonzero(perturbation).float() / 128).item()
+    # l0_norm = (perturbation != 0).float().sum(dim=1) / perturbation.size(1)
+    # l0_norm = l0_norm.mean().item()
     l1_norm = (torch.sum(torch.abs(perturbation), dim=1) / perturbation.size(1)).mean().item()
     l2_norm = torch.norm(perturbation, p=2, dim=1).mean().item()
     linf_norm = torch.max(torch.abs(perturbation)).item()
@@ -83,7 +85,7 @@ def test(net, eps):
     print(f"Average L1-norm: {sum(l1_norms) / len(l1_norms):.2f}")
     print(f"Average L2-norm: {sum(l2_norms) / len(l2_norms):.2f}")
     print(f"Average Linf-norm: {sum(linf_norms) / len(linf_norms):.2f}")
-    print(f"Average Wass-dist: {sum(wasserstein) / len(wasserstein):.2f}")
+    print(f"Average Wass-dist: {sum(wasserstein) / len(wasserstein):.4f}")
 
 def run_fgsm():
     model_folder = 'models'
