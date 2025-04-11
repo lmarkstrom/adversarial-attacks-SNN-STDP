@@ -1,4 +1,4 @@
-from model import device, net, mnist_test, batch_size, dtype, num_steps
+from model import device, net, mnist_test, batch_size, dtype, num_steps, num_outputs
 from torch.utils.data import DataLoader
 import torch.nn as nn
 import numpy as np
@@ -7,6 +7,7 @@ import torch
 import os
 from scipy.stats import wasserstein_distance
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 epsilons = [.066057]
 
@@ -32,12 +33,8 @@ def measure_perturbation(original, adversarial):
         adversarial = adversarial.view_as(original)
     perturbation = (adversarial - original).view(adversarial.size(0), -1)
     wass = wasserstein_distance(original.flatten(), adversarial.flatten())
-    # print(torch.count_nonzero(perturbation).float())
-    # print(perturbation.size(1))
-    l0_norm = (torch.count_nonzero(perturbation).float() / 128).item()
-    # l0_norm = (perturbation != 0).float().sum(dim=1) / perturbation.size(1)
-    # l0_norm = l0_norm.mean().item()
-    l1_norm = (torch.sum(torch.abs(perturbation), dim=1) / perturbation.size(1)).mean().item()
+    l0_norm = (torch.count_nonzero(perturbation).float() / batch_size).item()
+    l1_norm = (torch.sum(torch.abs(perturbation), dim=1).float() / batch_size).mean().item()
     l2_norm = torch.norm(perturbation, p=2, dim=1).mean().item()
     linf_norm = torch.max(torch.abs(perturbation)).item()
     return l0_norm, l1_norm, l2_norm, linf_norm, wass
@@ -79,11 +76,16 @@ def test(net, eps):
     linf_norms = []
     wasserstein = []
 
+    # Example images
     image_found = [False, False, False, False, False, False, False, False, False, False]
     images = [0,0,0,0,0,0,0,0,0,0]
     pert_images = [0,0,0,0,0,0,0,0,0,0]
     image_plot_done = False
     mispredictions = [0,0,0,0,0,0,0,0,0,0]
+
+    # heatmap
+    heatmap = np.zeros((num_outputs, num_outputs))
+    tot_images = np.zeros((1, num_outputs))
 
     # drop_last switched to False to keep all samples
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
@@ -114,16 +116,21 @@ def test(net, eps):
         correct += (predicted == targets).sum().item()
 
         # Plot first not correctly predicted images of each class
-        if not image_plot_done:
-            for idx, target in enumerate(targets):
-                if (not image_found[target]) and predicted[idx] != targets[idx]:
-                    mispredictions[target] = predicted[idx]
-                    images[target] = data[idx]
-                    pert_images[target] = pert_data[idx]
-                    image_found[target] = True 
-                    if all(image_found):
-                        image_plot(images, pert_images, mispredictions)
-
+        # if not image_plot_done:
+        #     for idx, target in enumerate(targets):
+        #         if (not image_found[target]) and predicted[idx] != targets[idx]:
+        #             mispredictions[target] = predicted[idx]
+        #             images[target] = data[idx]
+        #             pert_images[target] = pert_data[idx]
+        #             image_found[target] = True 
+        #             if all(image_found):
+        #                 image_plot(images, pert_images, mispredictions)
+        for idx, target in enumerate(targets):
+            true_label = target.item()
+            pred_label = predicted[idx].item()
+            heatmap[true_label, pred_label] += 1
+            tot_images[0, true_label] += 1
+    
     print(f"Epsilon: {eps}")    
     print(f"Total correctly classified test set images: {correct}/{total}")
     print(f"Test Set Accuracy: {100 * correct / total:.2f}%")
@@ -132,10 +139,34 @@ def test(net, eps):
     print(f"Average L2-norm: {sum(l2_norms) / len(l2_norms):.2f}")
     print(f"Average Linf-norm: {sum(linf_norms) / len(linf_norms):.2f}")
     print(f"Average Wass-dist: {sum(wasserstein) / len(wasserstein):.4f}")
+    plot_heatmap(heatmap, tot_images)
+
+def plot_heatmap(heatmap, tot_images):
+    # Normalize rows to get percentages (optional)
+    heatmap_norm = heatmap / heatmap.sum(axis=1, keepdims=True)
+
+    plt.figure(figsize=(10, 7))
+    sns.heatmap(
+        heatmap_norm, 
+        annot=True, 
+        fmt=".2f", 
+        cmap="rocket", 
+        xticklabels=[str(i) for i in range(num_outputs)], 
+        yticklabels=[str(i) for i in range(num_outputs)]
+    )
+    plt.xlabel("Target label")
+    plt.ylabel("Starting label")
+    plt.title(f"Confusion Matrix: SNN Classification after FGSM Attack\n")
+    plt.tight_layout()
+
+    # Save and show
+    plt.savefig(os.path.join("images", f"fgsm_heatmap_eps.png"))
+    plt.show()
+
 
 def run_fgsm():
     model_folder = 'models'
-    model_path = os.path.join(model_folder, 'snn_model.pth')
+    model_path = os.path.join(model_folder, 'snn_model_SMPL.pth')
     net.load_state_dict(torch.load(model_path, map_location=device))
     net.to(device)
     net.eval()
