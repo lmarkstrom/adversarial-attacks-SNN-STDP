@@ -28,8 +28,8 @@ def measure_perturbation(original, adversarial):
         adversarial = adversarial.view_as(original)
     perturbation = (adversarial - original).view(adversarial.size(0), -1)
     wass = wasserstein_distance(original.flatten(), adversarial.flatten())
-    l0_norm = (torch.count_nonzero(perturbation).float() / perturbation.size(1)).mean().item()
-    l1_norm = (torch.sum(torch.abs(perturbation), dim=1) / perturbation.size(1)).mean().item()
+    l0_norm = (torch.count_nonzero(perturbation).float() / batch_size).item()
+    l1_norm = (torch.sum(torch.abs(perturbation), dim=1).float() / batch_size).mean().item()
     l2_norm = torch.norm(perturbation, p=2, dim=1).mean().item()
     linf_norm = torch.max(torch.abs(perturbation)).item()
     return l0_norm, l1_norm, l2_norm, linf_norm, wass
@@ -61,6 +61,28 @@ def image_plot(data, pert_data, mispredictions):
     plt.savefig(save_path)
     plt.show()
 
+def plot_heatmap(heatmap, tot_images):
+    # Normalize rows to get percentages (optional)
+    heatmap_norm = heatmap / heatmap.sum(axis=1, keepdims=True)
+
+    plt.figure(figsize=(10, 7))
+    sns.heatmap(
+        heatmap_norm, 
+        annot=True, 
+        fmt=".2f", 
+        cmap="rocket", 
+        xticklabels=[str(i) for i in range(num_outputs)], 
+        yticklabels=[str(i) for i in range(num_outputs)]
+    )
+    plt.xlabel("Target label")
+    plt.ylabel("Starting label")
+    plt.title(f"Confusion Matrix: SNN Classification after FGSM Attack\n")
+    plt.tight_layout()
+
+    # Save and show
+    plt.savefig(os.path.join("images", f"fgsm_heatmap_eps.png"))
+    plt.show()
+
 def test(net):
     total = 0
     correct = 0
@@ -77,6 +99,10 @@ def test(net):
     pert_images = [0,0,0,0,0,0,0,0,0,0]
     image_plot_done = False
     mispredictions = [0,0,0,0,0,0,0,0,0,0]
+
+    # heatmap
+    heatmap = np.zeros((num_outputs, num_outputs))
+    tot_images = np.zeros((1, num_outputs))
 
     # drop_last switched to False to keep all samples
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
@@ -132,6 +158,7 @@ def test(net):
     print(f"Average L2-norm: {sum(l2_norms) / len(l2_norms):.2f}")
     print(f"Average Linf-norm: {sum(linf_norms) / len(linf_norms):.2f}")
     print(f"Average Wass-dist: {sum(wasserstein) / len(wasserstein):.4f}")
+    plot_heatmap(heatmap, tot_images)
 
 def run_cw():
     model_folder = 'models'
