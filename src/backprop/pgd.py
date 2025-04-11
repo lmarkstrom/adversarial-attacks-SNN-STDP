@@ -1,4 +1,4 @@
-from model import device, net, mnist_test, batch_size, dtype, num_steps
+from model import device, net, mnist_test, batch_size, dtype, num_steps, num_outputs
 from torch.utils.data import DataLoader
 import torchattacks
 import torch.nn as nn
@@ -8,6 +8,7 @@ import torch
 import os
 from scipy.stats import wasserstein_distance
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 class AttackWrapper(nn.Module):
     def __init__(self, snn_model):
@@ -161,7 +162,7 @@ def test(net):
 
 def run_pgd():
     model_folder = 'models'
-    model_path = os.path.join(model_folder, 'snn_model.pth')
+    model_path = os.path.join(model_folder, 'snn_model_SMPL.pth')
     net.load_state_dict(torch.load(model_path, map_location=device))
     net.to(device)
     net.eval()
