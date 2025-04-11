@@ -141,15 +141,21 @@ def test(net):
         batch += 1
 
         # Plot first not correctly predicted images of each class
-        if not image_plot_done:
-            for idx, target in enumerate(targets):
-                if (not image_found[target]) and predicted[idx] != targets[idx]:
-                    mispredictions[target] = predicted[idx]
-                    images[target] = data[idx]
-                    pert_images[target] = pert_data[idx]
-                    image_found[target] = True 
-                    if all(image_found):
-                        image_plot(images, pert_images, mispredictions)
+        # if not image_plot_done:
+        #     for idx, target in enumerate(targets):
+        #         if (not image_found[target]) and predicted[idx] != targets[idx]:
+        #             mispredictions[target] = predicted[idx]
+        #             images[target] = data[idx]
+        #             pert_images[target] = pert_data[idx]
+        #             image_found[target] = True 
+        #             if all(image_found):
+        #                 image_plot(images, pert_images, mispredictions)
+
+        for idx, target in enumerate(targets):
+            true_label = target.item()
+            pred_label = predicted[idx].item()
+            heatmap[true_label, pred_label] += 1
+            tot_images[0, true_label] += 1
     
     print(f"Total correctly classified test set images: {correct}/{total}")
     print(f"Test Set Accuracy: {100 * correct / total:.2f}%")
