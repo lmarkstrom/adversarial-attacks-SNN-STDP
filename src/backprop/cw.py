@@ -2,6 +2,7 @@ from model import device, net, mnist_test, batch_size, dtype, num_steps, num_out
 from torch.utils.data import DataLoader
 import torchattacks
 import torch.nn as nn
+import numpy as np
 import torch
 import os
 from scipy.stats import wasserstein_distance
@@ -77,11 +78,11 @@ def plot_heatmap(heatmap, tot_images):
     )
     plt.xlabel("Target label")
     plt.ylabel("Starting label")
-    plt.title(f"Confusion Matrix: SNN Classification after FGSM Attack\n")
+    plt.title(f"Confusion Matrix: SNN Classification after CW Attack\n")
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(os.path.join("images", f"fgsm_heatmap_eps.png"))
+    plt.savefig(os.path.join("images", f"cw_heatmap_eps_10_classes.png"))
     plt.show()
 
 def test(net):
@@ -109,7 +110,7 @@ def test(net):
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
 
     # attack = torchattacks.DeepFool(AttackWrapper(net), steps=50, overshoot=0.04)
-    attack = torchattacks.CW(AttackWrapper(net), c=1.5, kappa=0, steps=200, lr=0.05)
+    attack = torchattacks.CW(AttackWrapper(net), c=1.18, kappa=5, steps=200, lr=0.05)
 
     print(f"Total batches: {len(test_loader)}")
     net.eval()

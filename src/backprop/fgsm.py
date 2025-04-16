@@ -9,7 +9,7 @@ from scipy.stats import wasserstein_distance
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-epsilons = [.066057]
+epsilons = [.08125]
 
 
 class AttackWrapper(nn.Module):
@@ -160,13 +160,13 @@ def plot_heatmap(heatmap, tot_images):
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(os.path.join("images", f"fgsm_heatmap_eps.png"))
+    plt.savefig(os.path.join("images", f"fgsm_heatmap_eps_10_classes.png"))
     plt.show()
 
 
 def run_fgsm():
     model_folder = 'models'
-    model_path = os.path.join(model_folder, 'snn_model_SMPL.pth')
+    model_path = os.path.join(model_folder, 'snn_model.pth')
     net.load_state_dict(torch.load(model_path, map_location=device))
     net.to(device)
     net.eval()

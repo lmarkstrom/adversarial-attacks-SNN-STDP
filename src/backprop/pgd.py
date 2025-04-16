@@ -78,11 +78,11 @@ def plot_heatmap(heatmap, tot_images):
     )
     plt.xlabel("Target label")
     plt.ylabel("Starting label")
-    plt.title(f"Confusion Matrix: SNN Classification after FGSM Attack\n")
+    plt.title(f"Confusion Matrix: SNN Classification after PGD Attack\n")
     plt.tight_layout()
 
     # Save and show
-    plt.savefig(os.path.join("images", f"fgsm_heatmap_eps.png"))
+    plt.savefig(os.path.join("images", f"pgd_heatmap_eps_10_classes.png"))
     plt.show()
 
 def test(net):
@@ -110,7 +110,7 @@ def test(net):
     test_loader = DataLoader(mnist_test, batch_size=batch_size, shuffle=True, drop_last=False)
 
     # attack = torchattacks.DeepFool(AttackWrapper(net), steps=20, overshoot=0.02)
-    attack = torchattacks.PGD(AttackWrapper(net), eps=14860/255000, alpha=1/255, steps=20, random_start=True)
+    attack = torchattacks.PGD(AttackWrapper(net), eps=14500/255000, alpha=1/255, steps=20, random_start=True)
 
     net.eval()
     for data, targets in test_loader:
@@ -168,7 +168,7 @@ def test(net):
 
 def run_pgd():
     model_folder = 'models'
-    model_path = os.path.join(model_folder, 'snn_model_SMPL.pth')
+    model_path = os.path.join(model_folder, 'snn_model.pth')
     net.load_state_dict(torch.load(model_path, map_location=device))
     net.to(device)
     net.eval()
